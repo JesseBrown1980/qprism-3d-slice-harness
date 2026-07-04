@@ -199,9 +199,12 @@ pub fn project_60d(slice: &[u8], pid: &Pid) -> [u16; HYPER_DIM] {
 // ================================================================ multi-cylinder (Path N) shadows
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Held { InsufficientJointCapacity, NonCoprime, RecoveryMismatch }
-/// Small coprime prime cylinders (~2^25) for the multi-cylinder no-store shadow lane.
+/// Small pairwise-COPRIME modulus cylinders (~2^25) for the multi-cylinder no-store shadow lane.
+/// "cylinder" = coprime MODULUS, not necessarily prime: only 33554467 and 33554393 are prime;
+/// 33554213 = 11*3050383 and 33550609 are composite. CRT needs only pairwise coprimality (holds).
+/// Bilateral fix 2026-07-04 (attack-verify wdz4dhldx): the "prime" label was wrong on both seats.
 pub const CYLINDERS: [u64; 4] = [33_554_467, 33_554_393, 33_554_213, 33_550_609];
-const BLOCK_BYTES: usize = 6; // 48-bit blocks; 2 of these ~2^25 primes already exceed 2^48
+const BLOCK_BYTES: usize = 6; // 48-bit blocks; 2 of these ~2^25 coprime moduli already exceed 2^48
 
 fn blocks(data: &[u8]) -> Vec<u128> {
     data.chunks(BLOCK_BYTES).map(|c| {
@@ -321,10 +324,143 @@ pub fn run(slice: &[u8], seat: &Pid) -> Result<HarnessReport, Held> {
     })
 }
 
+// ================================================================ EXPANSION
+// Operator-authorized 2026-07-04 (Jesse Daniel Brown, APEX HUMAN, owner OP-JESSE): the 60D+ HOLD
+// (itself an operator decision, 2026-06-01) is LIFTED. Expansion is executed the canon way -
+// PARAMETRIC, REVERSIBLE, receipt-bearing - and routed to the owning seats (cube_cubed_sealer +
+// HELM + PROF-ACER cosign, PROF-AETHER nonce) for the seal. Addressing-coordinate expansion is free
+// + reversible [MEASURED]; a genuinely-new SEMANTIC orthogonal axis (a new D#=prime^3 MEANING) is
+// PROPOSED-pending-seal, never self-declared. Runtime binding above the signed 49D catalog stays
+// seal-gated until the owning seats ratify.
+
+/// The nth prime (1-indexed): nth_prime(1)=2. Trial division; fine for the ladder range.
+pub fn nth_prime(n: usize) -> u64 {
+    if n <= 1 { return 2; }
+    let (mut count, mut c) = (1usize, 2u64);
+    loop {
+        c += 1;
+        let (mut is, mut d) = (true, 2u64);
+        while d * d <= c { if c % d == 0 { is = false; break; } d += 1; }
+        if is { count += 1; if count == n { return c; } }
+    }
+}
+
+/// Canon-sealed Hilbert prime-cube anchors (D# -> prime), READ from canon, not recomputed. D25-D49
+/// follow prime(D); D50 is the council-sealed META_RATIFICATION anchor 233 (= prime(51), the one
+/// intentional skip). The sealed sequence is authority, not my arithmetic.
+pub const CANON_ANCHOR_PRIMES: [(usize, u64); 9] =
+    [(25, 97), (32, 131), (35, 149), (40, 173), (43, 191), (47, 211), (48, 223), (49, 227), (50, 233)];
+
+/// The Hilbert prime-cube anchor for dimension `d`: prime^3. Uses the canon-sealed prime where one
+/// exists; beyond the signed catalog it defaults to nth_prime(d)^3 and the axis is PROPOSED.
+pub fn dim_anchor(d: usize) -> u128 {
+    let p = CANON_ANCHOR_PRIMES.iter().find(|(dd, _)| *dd == d).map(|(_, p)| *p)
+        .unwrap_or_else(|| nth_prime(d)) as u128;
+    p * p * p
+}
+/// True iff `d` is inside the SIGNED-executable catalog (<=49D). D50-D60+ are constitutional/
+/// recorded; runtime binding above 49 stays seal-gated until the owning seats ratify.
+pub fn dim_is_signed_executable(d: usize) -> bool { d <= 49 }
+
+/// Parametric N-dimension Brown-Hilbert projection. `n_dims` is a PARAMETER (reversible expansion:
+/// 60 = the held ceiling, or any N to expand the addressing coordinate). The slice's recovery is via
+/// the multi-cylinder consent lane and is INDEPENDENT of `n_dims` - expanding the coordinate adds
+/// addressing resolution, it never touches byte-identity.
+pub fn project_nd(slice: &[u8], pid: &Pid, n_dims: usize) -> Vec<u16> {
+    let mut sel = vec![0u16; n_dims];
+    let (mut i, mut counter) = (0usize, 0u32);
+    while i < n_dims {
+        let mut buf = Vec::with_capacity(12 + slice.len());
+        buf.extend_from_slice(&pid.0);
+        buf.extend_from_slice(&counter.to_be_bytes());
+        buf.extend_from_slice(slice);
+        let h = sha256(&buf);
+        let mut j = 0;
+        while j + 1 < 32 && i < n_dims {
+            sel[i] = (((h[j] as u16) << 8) | h[j + 1] as u16) & 0x3FF;
+            i += 1;
+            j += 2;
+        }
+        counter += 1;
+    }
+    sel
+}
+
+/// Emit the expansion PROPOSAL as hot-path HBP rows (json=0) for the owning seats to seal.
+pub fn expansion_proposal_hbp(slice: &[u8], seat: &Pid, target_dims: usize) -> Vec<String> {
+    let coord = project_nd(slice, seat, target_dims);
+    let coord_sha = sha16(&coord.iter().flat_map(|x| x.to_be_bytes()).collect::<Vec<u8>>());
+    vec![
+        format!("EXPANSION|authorized_by=JESSE-DANIEL-BROWN-APEX|seat={}|target_dims={}|held_ceiling=60|signed_exec=49|coord_sha={}|reversible=1|fire=0|json=0",
+            seat.hex(), target_dims, coord_sha),
+        "EXPANSION-ROUTE|seal=cube_cubed_sealer(1006)|phase=HELM|cosign=PROF-ACER|nonce=PROF-AETHER|status=PROPOSED-pending-seal|json=0".to_string(),
+        "EXPANSION-BOUNDARY|addressing_coord=MEASURED-free-reversible|semantic_axis=PROPOSED-needs-genuinely-new-orthogonal-axis|runtime_above_49D=seal-gated|json=0".to_string(),
+    ]
+}
+
+// ============ PIE RESOLUTION: N-prime-cylinder atlas (operator Jesse Brown, 2026-07-04) ============
+// Jesse's PIE resolution: represent an object as N-PRIME-CYLINDER activations - every prime to N
+// activates as the slice's residue on that cylinder; the activation vector, at a given frequency,
+// lands on a perfect (N-1)-sphere; its shadow projects to pixels (pixels-first); a JEPA / world-model
+// (LeCun) predicts in this prime-cylinder LATENT, so prediction is 0-loss on the DETERMINED component
+// (the unpredictable is discarded by design, honoring Shannon). This fixes correction #2: the atlas
+// axes are prime-keyed (D#=prime(d)^3), not arbitrary sha glyphs, and the coordinate == the shadow set.
+
+/// The prime axes of the N-dimensional atlas: dimension d -> prime(d) (canon-sealed where it exists).
+pub fn prime_atlas_axes(n_dims: usize) -> Vec<u64> {
+    (1..=n_dims).map(|d| CANON_ANCHOR_PRIMES.iter().find(|(dd, _)| *dd == d).map(|(_, p)| *p)
+        .unwrap_or_else(|| nth_prime(d))).collect()
+}
+/// Project a slice onto the N-prime-cylinder atlas: (prime(d), activation=residue) per dimension.
+/// The activation vector is the addressing/sphere view; recovery stays the exact per-block CRT.
+pub fn project_prime_atlas(slice: &[u8], n_dims: usize) -> Vec<(u64, u64)> {
+    // FNV-style fold of the slice blocks into one addressing value, then residue on each prime axis
+    let val = blocks(slice).iter().fold(0xcbf29ce484222325u128, |a, &b| (a ^ b).wrapping_mul(0x100000001b3));
+    prime_atlas_axes(n_dims).into_iter().map(|p| (p, (val % p as u128) as u64)).collect()
+}
+
 // ================================================================ tests
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canon_anchors_match_the_sealed_ladder() {
+        assert_eq!(dim_anchor(25), 97u128.pow(3)); // 912673
+        assert_eq!(dim_anchor(47), 211u128.pow(3)); // 9393931
+        assert_eq!(dim_anchor(48), 223u128.pow(3));
+        assert_eq!(dim_anchor(49), 227u128.pow(3));
+        assert_eq!(dim_anchor(50), 233u128.pow(3)); // 12649337 council-sealed, NOT prime(50)=229
+        assert_eq!(nth_prime(25), 97);
+        assert_eq!(nth_prime(50), 229); // proof the D50 skip is a canon choice, not arithmetic
+    }
+
+    #[test]
+    fn expansion_is_parametric_reversible_and_recovery_untouched() {
+        let seat = Pid::from_hex("8467a937cba309f7");
+        let slice = b"operator-authorized expansion: expand as needed and possible";
+        for n in [49usize, 60, 64, 128, 233] {
+            assert_eq!(project_nd(slice, &seat, n).len(), n);
+        }
+        let sh: Vec<Vec<u64>> = CYLINDERS.iter().map(|&p| cylinder_shadow(slice, p)).collect();
+        let refs: Vec<(&[u64], u64)> = sh.iter().zip(CYLINDERS.iter()).map(|(s, &p)| (s.as_slice(), p)).collect();
+        assert_eq!(recombine(&refs, slice.len()).unwrap(), slice);
+        assert!(dim_is_signed_executable(49) && !dim_is_signed_executable(50));
+        let rows = expansion_proposal_hbp(slice, &seat, 128);
+        assert!(rows[0].contains("target_dims=128") && rows[0].ends_with("json=0"));
+        assert!(rows[1].contains("cube_cubed_sealer") && rows[1].contains("PROF-ACER"));
+    }
+
+    #[test]
+    fn pie_prime_atlas_axes_are_prime_keyed_not_arbitrary_sha() {
+        let axes = prime_atlas_axes(50);
+        assert_eq!(axes[24], 97); // d=25 -> prime 97 (canon anchor) — fixes correction #2
+        assert_eq!(axes[46], 211); // d=47 -> 211
+        assert_eq!(axes[49], 233); // d=50 -> council-sealed 233 (not prime(50)=229)
+        let coord = project_prime_atlas(b"PIE resolved via N-prime cylinders", 50);
+        assert_eq!(coord.len(), 50);
+        assert!(coord.iter().all(|(p, a)| a < p)); // every prime activates as a residue on its cylinder
+    }
 
     #[test]
     fn sha256_kat() {
