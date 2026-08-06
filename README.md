@@ -1,5 +1,16 @@
 # qprism-3d-slice-harness
 
+## Toolchain rule (operator, global)
+
+**Rust 1.81 with clippy. Integer arithmetic and ternary (trits) only — never float.**
+
+Pinned in `rust-toolchain.toml` (`channel = "1.81.0"`, `components = ["clippy", "rustfmt"]`),
+declared as `rust-version = "1.81"` in `Cargo.toml`, and enforced in CI by
+`cargo clippy --all-targets -- -D warnings` plus a hard grep that fails the build if any
+`f32`/`f64` appears in `src/` or `tests/`. Sources are currently float-free.
+
+This rule is global to every crate in the corpus and is not to be raised or substituted.
+
 **The living 3D Q-PRISM slice harness.** Pure Rust, zero deps, HBI/HBP `json=0`, 8-byte host. No JSON, no Node.
 
 Every frozen slice carries **multiple watched, addressable, lossless representation wavelengths** — the 7-step rung:
@@ -25,8 +36,8 @@ See [`docs/WATCHER-AND-PATH2-STATUS-2026-07-11.md`](docs/WATCHER-AND-PATH2-STATU
 
 - `AUDITED_GPT_5_6_PRO`: GPT-5.6 Pro read all 809 current source lines, the complete test surface, and the Path-1/Path-2/GNN/white-room/dispatcher/N-Nest lineage.
 - The GPT sandbox had no Rust toolchain and no outbound DNS, so it does not falsely claim a local cargo execution.
-- `CI_GPT_DIRECTED`: `.github/workflows/rust-1.97-independent-verification.yml` installs Rust 1.97.0, enumerates the test surface, runs every target, and uploads the receipt.
-- The operator-supplied Claude Fable 5 third-seat results apply to the two dedicated recovery crates: Path 1 **19/19** and Path 2 **30/30** under rustc 1.97. They are not misattributed as this crate's run.
+- `CI_GPT_DIRECTED`: `.github/workflows/rust-1.81-independent-verification.yml` installs Rust 1.81.0, enumerates the test surface, runs every target, and uploads the receipt.
+- The operator-supplied Claude Fable 5 third-seat results apply to the two dedicated recovery crates: Path 1 **19/19** and Path 2 **30/30** under rustc 1.81. They are not misattributed as this crate's run.
 
 ## Storage-backed / non-GPU applicability
 

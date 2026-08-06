@@ -210,19 +210,31 @@ impl Wavelength {
     /// Encode the slice into this wavelength's representation (a lossless view, or the sha shadow).
     pub fn encode(&self, slice: &[u8]) -> String {
         match self {
-            Wavelength::Binary => slice.iter().map(|b| format!("{:08b}", b)).collect(),
+            Wavelength::Binary => {
+                let mut out = String::new();
+                for b in slice {
+                    out.push_str(&format!("{:08b}", b));
+                }
+                out
+            }
             Wavelength::Hex => hex(slice),
             Wavelength::Sha => format!("AGT-{}", sha16(slice)), // a SHADOW: an address, not byte-recoverable alone
             Wavelength::HbiHbp => format!("SLICE|len={}|hex={}|json=0", slice.len(), hex(slice)),
-            Wavelength::Behcs64 => to_symbols(slice, 6)
-                .iter()
-                .map(|s| format!("{},", s))
-                .collect(),
+            Wavelength::Behcs64 => {
+                let mut out = String::new();
+                for s in to_symbols(slice, 6) {
+                    out.push_str(&format!("{},", s));
+                }
+                out
+            }
             Wavelength::Behcs256 => hex(slice), // base-2^8 == bytes
-            Wavelength::Behcs1024 => to_symbols(slice, 10)
-                .iter()
-                .map(|s| format!("{},", s))
-                .collect(),
+            Wavelength::Behcs1024 => {
+                let mut out = String::new();
+                for s in to_symbols(slice, 10) {
+                    out.push_str(&format!("{},", s));
+                }
+                out
+            }
             Wavelength::HyperBehcs => {
                 let g = to_symbols(slice, 10);
                 let mut s = String::new();

@@ -77,14 +77,14 @@ not claim the composition has already occurred merely because the fields are nam
   N-Nest lineage was inspected.
 
 The GPT sandbox lacked Rust and outbound DNS, so no GPT-local cargo run is claimed. This branch adds
-`.github/workflows/rust-1.97-independent-verification.yml`, which installs Rust 1.97.0, enumerates
+`.github/workflows/rust-1.81-independent-verification.yml`, which installs Rust 1.81.0, enumerates
 the current test surface, runs all targets, and uploads the receipt.
 
 The operator-provided Claude Fable 5 third-seat results apply directly to the two dedicated crates:
 
 ```text
-dbbh-coms-quant-prism       rustc 1.97   19/19 green
-path2-two-shadow-recovery   rustc 1.97   30/30 green
+dbbh-coms-quant-prism       rustc 1.81   19/19 green
+path2-two-shadow-recovery   rustc 1.81   30/30 green
 ```
 
 They are not silently reused as a test result for this separate crate.
